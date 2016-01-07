@@ -1,24 +1,20 @@
-var gulp         = require('gulp'),  
-    sass         = require('gulp-ruby-sass'),
-    autoprefixer = require('gulp-autoprefixer'),
-    minifycss    = require('gulp-minify-css'),
-    jshint       = require('gulp-jshint'),
-    uglify       = require('gulp-uglify'),
-    imagemin     = require('gulp-imagemin'),
-    rename       = require('gulp-rename'),
-    clean        = require('gulp-clean'),
-    concat       = require('gulp-concat'),
-    notify       = require('gulp-notify'),
-    cache        = require('gulp-cache'),
-    livereload   = require('gulp-livereload'),
-    watch        = require('gulp-watch'),
-    newer        = require('gulp-newer'),
-    scp 		 = require('gulp-scp2'),
-    runSequence  = require('run-sequence');
-
-gulp.task('test', function() {  
-    console.log('done');
-});
+var gulp         = require('gulp');
+var autoprefixer = require('gulp-autoprefixer');
+var cssnano      = require('gulp-cssnano');
+var jshint       = require('gulp-jshint');
+var uglify       = require('gulp-uglify');
+var imagemin     = require('gulp-imagemin');
+var rename       = require('gulp-rename');
+var concat       = require('gulp-concat');
+var notify       = require('gulp-notify');
+var cache        = require('gulp-cache');
+var newer        = require('gulp-newer');
+var scp          = require('gulp-scp2');
+var runSequence  = require('run-sequence');
+var sass         = require('gulp-ruby-sass');
+var babel        = require('gulp-babel');
+var del          = require('del');
+var vinylPaths   = require('vinyl-paths');
 
 gulp.task('sass', function() {  
     return gulp.src('src/*.scss')
@@ -27,16 +23,16 @@ gulp.task('sass', function() {
         .pipe(autoprefixer())
         // .pipe(gulp.dest('dist/assets/css'))
         // .pipe(rename({suffix: '.min'}))
-        .pipe(minifycss())
-        .pipe(gulp.dest('./build/'));
+        .pipe(cssnano())
+        .pipe(gulp.dest('build/'));
         // .pipe(notify({ message: 'Sass task complete' }))
 });
 
 gulp.task('hint', function() {  
     var stream = gulp.src('./src/**/*.js')
     .pipe(jshint())
-    .pipe(jshint.reporter('default'))
-    return stream
+    .pipe(jshint.reporter('default'));
+    return stream;
 });
 
 gulp.task('img', function() {  
@@ -49,74 +45,90 @@ gulp.task('img', function() {
 //===========================================================
 
 gulp.task('clean', function() {  
-  return gulp.src(['./build/'], {read: false})
-    .pipe(clean());
+  return gulp.src(['build/'])
+    .pipe(vinylPaths(del));
 });
 
 gulp.task('dist-clean', function() {  
-  return gulp.src(['./dist/'], {read: false})
-    .pipe(clean());
+  return gulp.src(['dist/'])
+    .pipe(vinylPaths(del));
 });
 
 gulp.task('css', function() {  
-    return gulp.src('./src/**/*.css')
-        .pipe(newer('./build/'))
+    return gulp.src('src/**/*.css')
+        .pipe(newer('build/'))
         .pipe(autoprefixer())
-        .pipe(gulp.dest('./build/'));
+        .pipe(gulp.dest('build/'));
 });
 
 gulp.task('dist-css', function() {  
-    return gulp.src('./src/**/*.css')
-        .pipe(newer('./dist/'))
+    return gulp.src('src/**/*.css')
+        .pipe(newer('dist/'))
         .pipe(autoprefixer())
-        .pipe(minifycss())
+        .pipe(cssnano())
         .pipe(gulp.dest('./dist/'));
 });
 
 gulp.task('js', function() {  
-    var stream = gulp.src('./src/**/*.js', {base: './src'})
-    .pipe(newer('./build/'))
+    var stream = gulp.src('src/**/*.js')
+    .pipe(newer('build/'))
     // .pipe(jshint())
     // .pipe(jshint.reporter('default'))
     // .pipe(concat('main.js'))
     // .pipe(gulp.dest('dist/assets/js'))
     // .pipe(rename({suffix: '.min'}))
     // .pipe(uglify())
-    .pipe(gulp.dest('./build/'));
-    return stream
+    // .pipe(babel({
+    //     presets: ['es2015']
+    // }))
+    .pipe(gulp.dest('build/'));
+    return stream;
 });
 
 gulp.task('dist-js', function() {  
-    var stream = gulp.src('./src/**/*.js')
-    .pipe(newer('./dist/'))
+    var stream = gulp.src('src/**/*.js')
+    .pipe(newer('dist/'))
     .pipe(uglify())
-    .pipe(gulp.dest('./dist/'));
-    return stream
+    .pipe(gulp.dest('dist/'));
+    return stream;
 });
 
 gulp.task('html', function() {
-    return gulp.src('./src/**/*.html')
-        .pipe(newer('./build/'))
-        .pipe(gulp.dest('./build/'));
+    return gulp.src('src/**/*.html')
+        .pipe(newer('build/'))
+        .pipe(gulp.dest('build/'));
 });
 
 gulp.task('dist-html', function() {
-    return gulp.src('./src/**/*.html')
-        .pipe(newer('./dist/'))
-        .pipe(gulp.dest('./dist/'));
+    return gulp.src('src/**/*.html')
+        .pipe(newer('dist/'))
+        .pipe(gulp.dest('dist/'));
 });
 
 gulp.task('scp', function() {
-	return gulp.src('./build/dataeye/**')
-	.pipe(scp({
-		host: '',
-		username: '',
-		password: '',
-		dest: '/home/'
-	}))
+	return gulp.src('build/dataeye/**')
+    .pipe(scp({
+        host: '',
+        username: '',
+        password: '',
+        dest: ''
+    }))
 	.on('error', function(err) {
 		console.log(err);
 	});
+});
+
+gulp.task('dist-scp', function() {
+    return gulp.src('dist/dataeye/**')
+    .pipe(scp({
+        host: '',
+        username: '',
+        password: '',
+        dest: ''
+    }))
+    .on('error', function(err) {
+        console.log(err);
+    });
 });
 
 gulp.task('debug', function() {  
@@ -124,5 +136,5 @@ gulp.task('debug', function() {
 });
 
 gulp.task('default', function() {  
-	runSequence('dist-clean', ['dist-html', 'dist-css', 'dist-js']);
+	runSequence('dist-clean', ['dist-html', 'dist-css', 'dist-js'], 'dist-scp');
 });
