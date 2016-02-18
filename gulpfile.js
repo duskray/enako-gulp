@@ -1,4 +1,5 @@
 var gulp         = require('gulp');
+var sass         = require('gulp-ruby-sass');
 var autoprefixer = require('gulp-autoprefixer');
 var cssnano      = require('gulp-cssnano');
 var jshint       = require('gulp-jshint');
@@ -11,10 +12,12 @@ var cache        = require('gulp-cache');
 var newer        = require('gulp-newer');
 var scp          = require('gulp-scp2');
 var runSequence  = require('run-sequence');
-var sass         = require('gulp-ruby-sass');
-var babel        = require('gulp-babel');
 var del          = require('del');
 var vinylPaths   = require('vinyl-paths');
+
+var Config = {
+    src: 'E:/Git/python/dataeye/'
+};
 
 gulp.task('sass', function() {  
     return gulp.src('src/*.scss')
@@ -55,10 +58,48 @@ gulp.task('dist-clean', function() {
 });
 
 gulp.task('css', function() {  
-    return gulp.src('src/**/*.css')
-        .pipe(newer('build/'))
+    return gulp.src(Config.src + '/static/**/*.css')
+        .pipe(newer('build/static/'))
         .pipe(autoprefixer())
-        .pipe(gulp.dest('build/'));
+        .pipe(gulp.dest('build/static/'));
+});
+
+gulp.task('js', function() {  
+    var stream = gulp.src(Config.src + '/static/**/*.js')
+    .pipe(newer('build/static/'))
+    // .pipe(jshint())
+    // .pipe(jshint.reporter('default'))
+    // .pipe(concat('main.js'))
+    // .pipe(gulp.dest('dist/assets/js'))
+    // .pipe(rename({suffix: '.min'}))
+    // .pipe(uglify())
+    .pipe(gulp.dest('build/static/'));
+    return stream;
+});
+
+gulp.task('html', function() {
+    return gulp.src(Config.src + '/templates/**/*.html')
+        .pipe(newer('build/templates/'))
+        .pipe(gulp.dest('build/templates/'));
+});
+
+gulp.task('debug-scp', function() {
+    return gulp.src('build/**')
+    .pipe(newer('scp2/'))
+    .pipe(gulp.dest('scp2/'))
+    .pipe(scp({
+        host: '',
+        username: '',
+        password: '',
+        dest: '',
+    }))
+    .on('error', function(err) {
+        console.log(err);
+    });
+});
+
+gulp.task('debug', function() {  
+    runSequence(['html', 'css', 'js'], 'debug-scp');
 });
 
 gulp.task('dist-css', function() {  
@@ -69,21 +110,6 @@ gulp.task('dist-css', function() {
         .pipe(gulp.dest('./dist/'));
 });
 
-gulp.task('js', function() {  
-    var stream = gulp.src('src/**/*.js')
-    .pipe(newer('build/'))
-    // .pipe(jshint())
-    // .pipe(jshint.reporter('default'))
-    // .pipe(concat('main.js'))
-    // .pipe(gulp.dest('dist/assets/js'))
-    // .pipe(rename({suffix: '.min'}))
-    // .pipe(uglify())
-    // .pipe(babel({
-    //     presets: ['es2015']
-    // }))
-    .pipe(gulp.dest('build/'));
-    return stream;
-});
 
 gulp.task('dist-js', function() {  
     var stream = gulp.src('src/**/*.js')
@@ -93,12 +119,6 @@ gulp.task('dist-js', function() {
     return stream;
 });
 
-gulp.task('html', function() {
-    return gulp.src('src/**/*.html')
-        .pipe(newer('build/'))
-        .pipe(gulp.dest('build/'));
-});
-
 gulp.task('dist-html', function() {
     return gulp.src('src/**/*.html')
         .pipe(newer('dist/'))
@@ -106,16 +126,16 @@ gulp.task('dist-html', function() {
 });
 
 gulp.task('scp', function() {
-	return gulp.src('build/dataeye/**')
+    return gulp.src('build/dataeye/**')
     .pipe(scp({
         host: '',
         username: '',
         password: '',
-        dest: ''
+        dest: '',
     }))
-	.on('error', function(err) {
-		console.log(err);
-	});
+    .on('error', function(err) {
+        console.log(err);
+    });
 });
 
 gulp.task('dist-scp', function() {
@@ -131,10 +151,8 @@ gulp.task('dist-scp', function() {
     });
 });
 
-gulp.task('debug', function() {  
-    runSequence(['html', 'css', 'js'], 'scp');
-});
+
 
 gulp.task('default', function() {  
-	runSequence('dist-clean', ['dist-html', 'dist-css', 'dist-js'], 'dist-scp');
+    runSequence('dist-clean', ['dist-html', 'dist-css', 'dist-js'], 'dist-scp');
 });
